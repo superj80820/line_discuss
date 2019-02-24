@@ -39,6 +39,13 @@ class db(object):
             .select(select_content)\
             .where(status.user_id == user_id))
 
+    def selectRoomQuery(self, room_id, select_content):
+        room = Table("room")
+        return str(Query\
+            .from_(room)\
+            .select(select_content)\
+            .where(room.room_id == room_id))
+
     @connAndClose(db="users.db")
     def insertDiscuss(self, c, user_id, word_content=None, timestamp=None):
         if timestamp == None :timestamp = time.time()
@@ -71,19 +78,19 @@ class db(object):
             .where(discuss.user_id == user_id)) + ' AND "timestamp"=({})'.format(last_timestampQuery)
 
     @connAndClose(db="users.db")
-    def updateStatus(self, c, user_id, action):
-        print("update user action : {}".format(action))
-        c.execute(self.updateStatusQuery(user_id, action))
+    def updateStatus(self, c, user_id, select_content, value):
+        print("update user status : {}".format(select_content))
+        c.execute(self.updateStatusQuery(user_id, select_content, value))
 
-    def updateStatusQuery(self, user_id, action):
+    def updateStatusQuery(self, user_id, select_content, value):
         status = Table("status")
         return str(Query\
             .update(status)\
-            .set('action', action)\
+            .set(select_content, value)\
             .where(status.user_id == user_id))
 
     @connAndClose(db="users.db")
-    def selectStatus(self, c, user_id, action="default"):
+    def selectStatusAction(self, c, user_id, action="default"):
         if bool(c.execute(self.checkExistsQuery(self.selectStatusQuery(user_id, "user_id"))).fetchall()[0][0]):
             action = c.execute(self.selectStatusQuery(user_id, "action")).fetchall()[0][0]
             print("select user action : {}".format(action))
@@ -98,3 +105,23 @@ class db(object):
         return str(Query.into(status)\
             .columns("user_id", "action")\
             .insert(user_id, action))
+
+    @connAndClose(db="users.db")
+    def selectStatus(self, c, user_id, select_content):
+        return c.execute(self.selectStatusQuery(user_id, select_content)).fetchall()[0][0]
+
+    @connAndClose(db="users.db")
+    def insertRoom(self, c, inser_content, room_id):
+        if bool(c.execute(self.checkExistsQuery(self.selectRoomQuery(room_id, "room_id"))).fetchall()[0][0]):
+            print("room is exist")
+            return False
+        else:
+            print("insert room, {}: {}".format(inser_content, room_id))
+            c.execute(self.insertRoomQuery(inser_content, room_id))
+            return True
+
+    def insertRoomQuery(self, inser_content, value):
+        room = Table("room")
+        return str(Query.into(room)\
+            .columns(inser_content)\
+            .insert(value))
