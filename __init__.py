@@ -122,11 +122,11 @@ def handle_image(event):
 @socketio.on('create_room')
 def createRoom(room_id):
     print(room_id)
+    join_room(room_id)
     if dbModel.insertRoom("room_id", room_id):
-        join_room(room_id)
         emit('create_room_response', "create room : {}".format(room_id), room=room_id)
     else:
-        print("room is exist")
+        emit('create_room_response', "room is exist", room=room_id)
 
 @socketio.on('screenshop_revice')
 def screenshopRevice(message):
