@@ -6,6 +6,9 @@ from model.db import db
 from model.imgurApi import imgurApi
 import re
 import time
+import random
+from functional import seq
+import json
 from flask import Flask, request, abort, request
 from flask_socketio import SocketIO, emit, join_room, rooms
 from linebot import (
@@ -16,7 +19,8 @@ from linebot.exceptions import (
 )
 from linebot.models import (
     MessageEvent, TextMessage, TextSendMessage, ImageMessage,
-    ImageSendMessage
+    ImageSendMessage, TemplateSendMessage, ButtonsTemplate, MessageAction,
+    PostbackAction, PostbackEvent
 )
 processImageModel = processImage()
 imgurApiModel = imgurApi(CLIENT_ID, CLIENT_SECRET, ACCESS_TOKEN, REFRESH_TOKEN)
@@ -51,18 +55,18 @@ def handle_message(event):
     user_status = dbModel.selectStatusAction(event.source.user_id)
     if user_status == "default":
         if event.message.text == "發問":
-            dbModel.updateStatus(event.source.user_id, "action", "ask")
+            dbModel.updateStatus("action", "ask", "user_id", event.source.user_id)
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(text="現在可以開始發問問題了喔~"))
         elif event.message.text == "截圖":
-            room_id = dbModel.selectStatus(event.source.user_id, "room_id")
+            room_id = dbModel.selectStatus("room_id", "user_id", event.source.user_id)[0][0]
             socketio.emit('screenshop_requests', {"request" :True, "user_id": event.source.user_id}, room=room_id)
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(text="已經開始截圖 請等待接收~"))
         elif re.search("\d{6}", event.message.text) != None:
-            dbModel.updateStatus(event.source.user_id, "room_id", event.message.text)
+            dbModel.updateStatus("room_id", event.message.text, "user_id", event.source.user_id)
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(text="已加入會議/課程/簡報~"))
@@ -72,7 +76,7 @@ def handle_message(event):
                 TextSendMessage(text="請選擇列表功能喔~"))
     elif user_status == "ask":
         if event.message.text == "結束發問":
-            dbModel.updateStatus(event.source.user_id, "action", "default")
+            dbModel.updateStatus("action", "default", "user_id", event.source.user_id)
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(text="結束發問囉~"))
@@ -81,6 +85,25 @@ def handle_message(event):
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(text="可以在附加圖片喔 直接上傳即可"))
+
+@handler.add(PostbackEvent)
+def handle_postback(event):
+    user_status = dbModel.selectStatusAction(event.source.user_id)
+    req = json.loads(event.postback.data)
+    if user_status == "vote":
+        vote_data = dbModel.selectVote(req["vote_id"], "vote_data")
+        for item in vote_data:
+            if item.get(req["item"]) != None:
+                item[req["item"]] += 1
+        dbModel.updateVote("vote_data", vote_data, "vote_id", req["vote_id"])
+        dbModel.updateStatus("action", "default", "user_id", event.source.user_id)
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="以投票~"))
+    else:
+        line_bot_api.reply_message(
+            event.reply_token,
+            TextSendMessage(text="你已經投票過了喔~"))
 
 @handler.add(MessageEvent, message=ImageMessage)
 def handle_image(event):
@@ -126,5 +149,54 @@ def screenshopRevice(message):
         )
     processImageModel.deleteImage(image_name)
 
+@socketio.on('vote')
+def voteStart(message):
+    if message["action"] == "start":
+        print("vote start")
+        vote_id = message["vote_id"]
+        dbModel.insertVote(message["room_id"], vote_id, [{"item1": 0}, {"item2": 0}])
+        dbModel.updateRoom("vote", "start", "room_id", message["room_id"])
+        user_id_list = list(seq(dbModel.selectStatus("user_id", "room_id", message["room_id"]))\
+            .map(lambda x: x[0]))
+        print(message["room_id"])
+        vote_template = TemplateSendMessage(
+            alt_text='vote template',
+            template=ButtonsTemplate(
+                thumbnail_image_url='https://image.flaticon.com/icons/png/512/281/281382.png',
+                title='來投票囉!',
+                text='請選擇',
+                actions=[
+                    PostbackAction(
+                        label='O',
+                        data='{"room_id": %s, "vote_id": %s, "item": "item1"}' %(message["room_id"], vote_id)
+                    ),
+                    PostbackAction(
+                        label='X',
+                        data='{"room_id": %s, "vote_id": %s, "item": "item2"}' %(message["room_id"], vote_id)
+                    )
+                ]
+            )
+        )
+        # Need design optimization db function
+        for item in user_id_list:
+            dbModel.updateStatus("action", "vote", "user_id", item)
+        line_bot_api.multicast(
+            user_id_list, vote_template
+        )
+        emit('vote_response', "start vote id : {}".format(message["room_id"]), room=message["room_id"])
+    elif message["action"] == "stop":
+        print("vote stop")
+        dbModel.updateRoom("vote", "stop", "room_id", message["room_id"])
+        user_id_list = list(seq(dbModel.selectStatus("user_id", "room_id", message["room_id"]))\
+            .map(lambda x: x[0]))
+        print(user_id_list)
+        vote_data = dbModel.selectVote(message["vote_id"], "vote_data")
+        line_bot_api.multicast(
+            user_id_list, [
+                TextSendMessage(text="投票結束~"),
+                TextSendMessage(text="投票結果\nO: {}\nX: {}".format(vote_data[0]["item1"], vote_data[1]["item2"]))]
+        )
+        emit('vote_response', "stop vote id : {}".format(message["room_id"]), room=message["room_id"])
+
 if __name__ == "__main__":
-    socketio.run(app, debug = True)
+    socketio.run(app, debug=True)

@@ -19,7 +19,7 @@ class TestStringMethods(unittest.TestCase):
 
     def test_updateStatusQuery(self):
         print(self._testMethodName)
-        print(self.dbModel.updateStatusQuery("5678asdf678d", "no discuss"))
+        print(self.dbModel.updateStatusQuery("action", "no discuss", "where", "whdereasdf"))
 
     def test_selectStatusQuery(self):
         print(self._testMethodName)
@@ -29,6 +29,10 @@ class TestStringMethods(unittest.TestCase):
     def test_updateLastDiscussQuery(self):
         print(self._testMethodName)
         print(self.dbModel.updateLastDiscussQuery("5678asdf678d", "image", "base64asfdsdf"))
+
+    def test_selectVote(self):
+        print(self._testMethodName)
+        print(self.dbModel.selectVote("551950", "vote_data"))
 
 if __name__ == '__main__':
     unittest.main()
