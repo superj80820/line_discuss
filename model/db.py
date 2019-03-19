@@ -5,6 +5,7 @@ import sqlite3 as sqlite
 import os
 from pypika import Query, Table, Field
 import time
+import json
 
 class db(object):
     def __init__(self):
@@ -32,12 +33,12 @@ class db(object):
     def checkExistsQuery(self, query):
         return "SELECT EXISTS({})".format(str(query))
 
-    def selectStatusQuery(self, user_id, select_content):
+    def selectStatusQuery(self, select_content, where_content, where_value):
         status = Table("status")
         return str(Query\
             .from_(status)\
             .select(select_content)\
-            .where(status.user_id == user_id))
+            .where(getattr(status, where_content) == where_value))
 
     def selectRoomQuery(self, room_id, select_content):
         room = Table("room")
@@ -78,21 +79,21 @@ class db(object):
             .where(discuss.user_id == user_id)) + ' AND "timestamp"=({})'.format(last_timestampQuery)
 
     @connAndClose(db="users.db")
-    def updateStatus(self, c, user_id, select_content, value):
-        print("update user status : {}".format(select_content))
-        c.execute(self.updateStatusQuery(user_id, select_content, value))
+    def updateStatus(self, c, set_content, set_value, select_content, select_value):
+        print("update user status : {}".format(set_content))
+        c.execute(self.updateStatusQuery(set_content, set_value, select_content, select_value))
 
-    def updateStatusQuery(self, user_id, select_content, value):
+    def updateStatusQuery(self, set_content, set_value, select_content, select_value):
         status = Table("status")
         return str(Query\
             .update(status)\
-            .set(select_content, value)\
-            .where(status.user_id == user_id))
+            .set(set_content, set_value)\
+            .where(getattr(status, select_content) == select_value))
 
     @connAndClose(db="users.db")
     def selectStatusAction(self, c, user_id, action="default"):
-        if bool(c.execute(self.checkExistsQuery(self.selectStatusQuery(user_id, "user_id"))).fetchall()[0][0]):
-            action = c.execute(self.selectStatusQuery(user_id, "action")).fetchall()[0][0]
+        if bool(c.execute(self.checkExistsQuery(self.selectStatusQuery("user_id", "user_id", user_id))).fetchall()[0][0]):
+            action = c.execute(self.selectStatusQuery("action", "user_id", user_id)).fetchall()[0][0]
             print("select user action : {}".format(action))
             return action
         else:
@@ -107,8 +108,8 @@ class db(object):
             .insert(user_id, action))
 
     @connAndClose(db="users.db")
-    def selectStatus(self, c, user_id, select_content):
-        return c.execute(self.selectStatusQuery(user_id, select_content)).fetchall()[0][0]
+    def selectStatus(self, c, select_content, where_content, where_value):
+        return c.execute(self.selectStatusQuery(select_content, where_content, where_value)).fetchall()
 
     @connAndClose(db="users.db")
     def insertRoom(self, c, inser_content, room_id):
@@ -125,3 +126,55 @@ class db(object):
         return str(Query.into(room)\
             .columns(inser_content)\
             .insert(value))
+
+    @connAndClose(db="users.db")
+    def updateRoom(self, c, set_content, set_value, select_content, select_value):
+        print("update user room : {}".format(set_content))
+        c.execute(self.updateRoomQuery(set_content, set_value, select_content, select_value))
+
+    def updateRoomQuery(self, set_content, set_value, select_content, select_value):
+        room = Table("room")
+        return str(Query\
+            .update(room)\
+            .set(set_content, set_value)\
+            .where(getattr(room, select_content) == select_value))
+
+    @connAndClose(db="users.db")
+    def insertVote(self, c, room_id, vote_id, vote_data):
+        print("insert vote, room_id: {}".format(room_id))
+        timestamp = time.time()
+        vote_data = json.dumps(vote_data)
+        c.execute(self.insertVoteQuery(room_id, vote_id, vote_data, timestamp))
+
+    def insertVoteQuery(self, room_id, vote_id, vote_data, timestamp):
+        vote = Table("vote")
+        return str(Query.into(vote)\
+            .columns("room_id", "vote_id", "vote_data", "timestamp")\
+            .insert(room_id, vote_id, vote_data, timestamp))
+
+    @connAndClose(db="users.db")
+    def updateVote(self, c, set_content, set_value, select_content, select_value):
+        if set_content == "vote_data":
+            set_value = json.dumps(set_value)
+        else:
+            set_value = str(set_value)
+        print("update vote, {}: {}".format(set_content, set_value))
+        c.execute(self.updateVoteQuery(set_content, set_value, select_content, select_value))
+
+    def updateVoteQuery(self, set_content, set_value, select_content, select_value):
+        vote = Table("vote")
+        return str(Query\
+            .update(vote)\
+            .set(set_content, set_value)\
+            .where(getattr(vote, select_content) == select_value))
+
+    @connAndClose(db="users.db")
+    def selectVote(self, c, vote_id, select_content):
+        return json.loads(c.execute(self.selectVoteQuery(vote_id, select_content)).fetchall()[0][0])
+
+    def selectVoteQuery(self, vote_id, select_content):
+        vote = Table("vote")
+        return str(Query\
+            .from_(vote)\
+            .select(select_content)\
+            .where(vote.vote_id == vote_id))
