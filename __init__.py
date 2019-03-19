@@ -219,5 +219,17 @@ def send2Audience(message):
         pass
     processImageModel.deleteImage(message["image_name"])
 
+@socketio.on('rollCall')
+def rollCall(message):
+    print("roll call, room id is : {}".format(message["room_id"]))
+    ret = dict()
+    ori_members = dbModel.selectRoom(message["room_id"], "members")
+    room_menbers = dbModel.selectStatusRoomIdMembers(message["room_id"])
+    ret["arrive_members"] = room_menbers["count"]
+    ret["not_arrive_members"] = ori_members - room_menbers["count"]
+    ret["room_id"] = message["room_id"]
+    emit('rollCall_response', ret, room=message["room_id"])
+
+
 if __name__ == "__main__":
     socketio.run(app, debug=True)

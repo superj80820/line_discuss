@@ -112,6 +112,21 @@ class db(object):
         return c.execute(self.selectStatusQuery(select_content, where_content, where_value)).fetchall()
 
     @connAndClose(db="users.db")
+    def selectStatusRoomIdMembers(self, c, room_id):
+        ret = c.execute(self.selectStatusRoomIdMembersQuery(room_id)).fetchall()
+        ret = {"members": list(map(lambda x:x[1], ret)), "count": len(ret)}
+        return ret
+
+    def selectStatusRoomIdMembersQuery(self, room_id):
+        status = Table("status")
+        return str(Query\
+            .from_(status)\
+            .select("room_id")\
+            .select("name")\
+            .where(status.room_id == room_id)\
+            .where(status.arrive == "true"))
+
+    @connAndClose(db="users.db")
     def insertRoom(self, c, inser_content, room_id):
         if bool(c.execute(self.checkExistsQuery(self.selectRoomQuery(room_id, "room_id"))).fetchall()[0][0]):
             print("room is exist")
@@ -138,6 +153,10 @@ class db(object):
             .update(room)\
             .set(set_content, set_value)\
             .where(getattr(room, select_content) == select_value))
+
+    @connAndClose(db="users.db")
+    def selectRoom(self, c, room_id, select_content):
+        return int(c.execute(self.selectRoomQuery(room_id, select_content)).fetchall()[0][0])
 
     @connAndClose(db="users.db")
     def insertVote(self, c, room_id, vote_id, vote_data):
