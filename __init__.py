@@ -119,6 +119,13 @@ def handle_image(event):
             TextSendMessage(text="已接收到圖片~"))
 
 ### websocket api ###
+def controllerImageStore(message):
+    message["image_name"] = time.time()
+    processImageModel.base64ToImage(message["image_name"], message["image"])
+    image_path = "{}.jpg".format(message["image_name"])
+    message["upload_imgur"] = imgurApiModel.upload(image_path)
+    return message
+
 @socketio.on('create_room')
 def createRoom(room_id):
     print(room_id)
@@ -131,14 +138,11 @@ def createRoom(room_id):
 @socketio.on('screenshop_revice')
 def screenshopRevice(message):
     print("screenshop revice, user id is : {}".format(message["user_id"]))
-    image_name = time.time()
-    processImageModel.base64ToImage(image_name, message["image"])
-    image_path = "{}.jpg".format(image_name)
-    upload_imgur = imgurApiModel.upload(image_path)
-    if upload_imgur:
+    message = controllerImageStore(message)
+    if message["upload_imgur"]:
         image_message = ImageSendMessage(
-            original_content_url=upload_imgur["link"],
-            preview_image_url=upload_imgur["link"]
+            original_content_url=message["upload_imgur"]["link"],
+            preview_image_url=message["upload_imgur"]["link"]
         )
         line_bot_api.push_message(
             message["user_id"], image_message
@@ -147,7 +151,7 @@ def screenshopRevice(message):
         line_bot_api.push_message(
             message["user_id"], TextSendMessage(text="截圖失敗")
         )
-    processImageModel.deleteImage(image_name)
+    processImageModel.deleteImage(message["image_name"])
 
 @socketio.on('vote')
 def voteStart(message):
@@ -197,6 +201,23 @@ def voteStart(message):
                 TextSendMessage(text="投票結果\nO: {}\nX: {}".format(vote_data[0]["item1"], vote_data[1]["item2"]))]
         )
         emit('vote_response', "stop vote id : {}".format(message["room_id"]), room=message["room_id"])
+
+@socketio.on('send2Audience')
+def send2Audience(message):
+    print("screenshop revice, room id is : {}".format(message["room_id"]))
+    message = controllerImageStore(message)
+    if message["upload_imgur"]:
+        image_message = ImageSendMessage(
+            original_content_url=message["upload_imgur"]["link"],
+            preview_image_url=message["upload_imgur"]["link"]
+        )
+        user_id_list = list(seq(dbModel.selectStatus("user_id", "room_id", message["room_id"]))\
+            .map(lambda x: x[0]))
+        line_bot_api.multicast(
+            user_id_list, image_message)
+    else:
+        pass
+    processImageModel.deleteImage(message["image_name"])
 
 if __name__ == "__main__":
     socketio.run(app, debug=True)
