@@ -50,6 +50,17 @@ def callback():
 
     return 'OK'
 
+@app.route("/rfid", methods=['GET'])
+def rfid():
+    rifd_str = request.args.get('rfid')
+    print("rfid_str is : " + rifd_str)
+    dbModel.updateStatus("arrive", "true", "rfid_id", rifd_str)
+    user_id = dbModel.selectStatus("user_id", "rfid_id", rifd_str)[0][0]
+    line_bot_api.push_message(
+        user_id, TextSendMessage(text="已加入課程")
+    )
+    return 'OK'
+
 @handler.add(MessageEvent, message=TextMessage)
 def handle_message(event):
     user_status = dbModel.selectStatusAction(event.source.user_id)
@@ -70,6 +81,9 @@ def handle_message(event):
             line_bot_api.reply_message(
                 event.reply_token,
                 TextSendMessage(text="已加入會議/課程/簡報~"))
+        elif event.message.text == "救人":
+            room_id = dbModel.selectStatus("room_id", "user_id", event.source.user_id)[0][0]
+            socketio.emit('xuHelp', {"request": True}, room=room_id)
         else:
             line_bot_api.reply_message(
                 event.reply_token,
@@ -187,7 +201,6 @@ def voteStart(message):
         line_bot_api.multicast(
             user_id_list, vote_template
         )
-        emit('vote_response', "start vote id : {}".format(message["room_id"]), room=message["room_id"])
     elif message["action"] == "stop":
         print("vote stop")
         dbModel.updateRoom("vote", "stop", "room_id", message["room_id"])
@@ -200,7 +213,7 @@ def voteStart(message):
                 TextSendMessage(text="投票結束~"),
                 TextSendMessage(text="投票結果\nO: {}\nX: {}".format(vote_data[0]["item1"], vote_data[1]["item2"]))]
         )
-        emit('vote_response', "stop vote id : {}".format(message["room_id"]), room=message["room_id"])
+        emit('vote_response', vote_data, room=message["room_id"])
 
 @socketio.on('send2Audience')
 def send2Audience(message):
@@ -228,8 +241,16 @@ def rollCall(message):
     ret["arrive_members"] = room_menbers["count"]
     ret["not_arrive_members"] = ori_members - room_menbers["count"]
     ret["room_id"] = message["room_id"]
+    ret["members"] = room_menbers["members"]
     emit('rollCall_response', ret, room=message["room_id"])
 
+@socketio.on('discussImage')
+def discussImage(message):
+    ret = dict()
+    ret["data"] = dbModel.selectDiscuss()
+    print(ret["data"])
+    emit('discussImage_response', ret["data"], room=message["room_id"])
 
 if __name__ == "__main__":
-    socketio.run(app, debug=True)
+    socketio.run(app, host="localhost", port=5000, debug=True)
+    # socketio.run(app, debug=True)

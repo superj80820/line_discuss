@@ -79,6 +79,19 @@ class db(object):
             .where(discuss.user_id == user_id)) + ' AND "timestamp"=({})'.format(last_timestampQuery)
 
     @connAndClose(db="users.db")
+    def selectDiscuss(self, c):
+        return c.execute(
+            self.selectDiscussQuery()
+        ).fetchall()[0]
+
+    def selectDiscussQuery(self):
+        discuss = Table("discuss")
+        return str(Query\
+            .from_(discuss)\
+            .select("image")\
+            .select("word"))
+
+    @connAndClose(db="users.db")
     def updateStatus(self, c, set_content, set_value, select_content, select_value):
         print("update user status : {}".format(set_content))
         c.execute(self.updateStatusQuery(set_content, set_value, select_content, select_value))
