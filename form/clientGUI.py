@@ -1,9 +1,9 @@
 #!/usr/bin/python
-import sys, os
+import sys, os, signal
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from model.websocketClient import websocketClient
 from model.discussFigure import discussFigure
-from model.transmissionImage import transmissionImage
+from model.processImage import processImage
 import threading
 import wx
 import wx.lib.scrolledpanel
@@ -15,9 +15,9 @@ class keybaord(wx.Frame):
     def __init__(self, parent):
         super(keybaord, self).__init__(parent, title = "keybaord", style=wx.DEFAULT_FRAME_STYLE | wx.STAY_ON_TOP, size=(420, 290))
         ### variable ###
-        subprocess.Popen("../res/PointofixPortable/Pointofix.exe", stderr=subprocess.PIPE)
-        self.transmissionImageModel = transmissionImage()
-        self.websocketClientModel = websocketClient("123456", url="192.168.43.87", port=5000)
+        self.pointofix = subprocess.Popen("../res/PointofixPortable/Pointofix.exe", stderr=subprocess.PIPE)
+        self.processImageModel = processImage()
+        self.websocketClientModel = websocketClient("123456", url="localhost", port=5000)
         self.discussFigureModel = discussFigure()
         self.websocketClientModel.emit("create_room", self.websocketClientModel.getRoomId())
         t = threading.Thread(target = self.websocketClientModel.thread)
@@ -95,11 +95,12 @@ class keybaord(wx.Frame):
         def discussImage(event):
             self.websocketClientModel.discussImage()
             resp = self.websocketClientModel.waitDiscussImageTrigger()
-            self.transmissionImageModel.base64ToImage(resp[0])
+            self.processImageModel.base64ToImage("../res/imageToSave", resp[0])
             self.discussFigureModel.discussImage("../res/imageToSave.jpg", resp[1])
 
         def exit(event):
             self.websocketClientModel.threadStop()
+            os.kill(self.pointofix.pid, -9)
             sys.exit(0)
 
         def windowsTab(event):

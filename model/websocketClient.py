@@ -1,6 +1,6 @@
 import sys, os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
-from model.transmissionImage import transmissionImage
+from model.processImage import processImage
 from model.discussFigure import discussFigure
 from model.computerIO import computerIO
 import threading
@@ -13,7 +13,7 @@ class websocketClient(object):
     def __init__(self, room_id=None, url="localhost", port=5000):
         self.socketIO = SocketIO(url, port, LoggingNamespace)
         self.computerIOModel = computerIO()
-        self.transmissionImageModel = transmissionImage()
+        self.processImageModel = processImage()
         self.room_id = room_id or self.getRandId()
         self.vote_id = None
         self.thread_running = True
@@ -40,7 +40,7 @@ class websocketClient(object):
     def thread(self):
         def screenshop_requests(*args):
             print(args)
-            image_content = self.transmissionImageModel.PILimageToBase64(
+            image_content = self.processImageModel.PILimageToBase64(
                 self.computerIOModel.screenshop()
             )
             self.socketIO.emit('screenshop_revice', {
@@ -89,7 +89,7 @@ class websocketClient(object):
         return ret
 
     def send2Audience(self, room_id):
-        image_content = self.transmissionImageModel.PILimageToBase64(
+        image_content = self.processImageModel.PILimageToBase64(
             self.computerIOModel.screenshop()
         )
         self.socketIO.emit('send2Audience', {"image": image_content, "room_id": room_id})

@@ -252,5 +252,5 @@ def discussImage(message):
     emit('discussImage_response', ret["data"], room=message["room_id"])
 
 if __name__ == "__main__":
-    socketio.run(app, host="192.168.43.87", port=5000, debug=True)
+    socketio.run(app, host="localhost", port=5000, debug=True)
     # socketio.run(app, debug=True)
