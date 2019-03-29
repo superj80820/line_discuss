@@ -1,0 +1,56 @@
+
+Pointofix - der virtuelle Textmarker für Ihren Bildschirm!
+Version 1.8.0
+---------------------------------------------------------------
+Installationsdatei: setup-pointofix.exe
+System: PC mit Windows
+---------------------------------------------------------------
+
+Pointofix ist ein virtueller Textmarker für Ihren Bildschirm zur
+Unterstützung Ihrer Vorträge, Schulungen und Präsentationen.
+
+Mit diesem Werkzeug kann jeder Bildschirminhalt als digitale
+Zeichenfläche verfügbar gemacht werden, so dass Sie Wichtiges
+markieren und hervorheben können.
+
+Somit ist Pointofix ideal für Sie als Lehrer oder IT-Trainer
+zur Unterstützung Ihrer Vorträge, Schulungen und Präsentationen.
+
+Auf Knopfdruck friert Pointofix den aktuellen Bildschirminhalt
+ein und stellt eine Reihe praktischer Markierungs- und
+Zeichenwerkzeuge in verschiedenen Farben und Größen zur
+Verfügung: Freihand-Stift, Linie, Pfeil, Rechteck, Ellipse,
+Texteingabe, Häkchen und einige mehr.
+
+Die Lupe und die mehrstufige Zoomansicht des gesamten
+Bildschirms sind weitere nützliche Funktionen.
+
+Pointofix funktioniert mit praktisch jedem Windows-
+Anwendungsprogramm. Präsentationen erscheinen somit
+eindrucksvoller und werden vom Publikum besser aufgenommen.
+
+Darüber hinaus kann der Bildschirminhalt - wahlweise auch ein
+Teilbereich - gedruckt, in die Zwischenablage kopiert oder als
+Grafikdatei abgespeichert werden.
+
+Weitere Informationen zu Pointofix im Internet unter:
+http://www.pointofix.de
+
+Download:
+http://www.pointofix.de/download.php
+
+---------------------------------------------------------------
+Pointofix ist 'Freeware', d.h. Sie dürfen das Programm für
+private und geschäftliche Zwecke frei verwenden und kostenlos
+weitergeben.
+Bei Weitergabe als Teil eines kommerziellen Produkts (Hardware,
+Software) ist eine Genehmigung erforderlich.
+---------------------------------------------------------------
+
+Copyright (C) 2017 Thomas Gottfried
+Alle Rechte vorbehalten.
+
+Thomas Gottfried EDV
+Siedlerweg 12 / 76872 Steinweiler / Deutschland
+Internet: www.pointofix.de
+E-Mail: info@pointofix.de
